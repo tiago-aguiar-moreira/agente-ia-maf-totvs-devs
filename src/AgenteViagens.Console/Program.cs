@@ -13,9 +13,13 @@ var config = new ConfigurationBuilder()
 Tela.Escrever(ConsoleColor.Cyan, "✈  Agente de Viagens — Microsoft Agent Framework\n\n");
 
 FoundryOptions foundry;
+McpOptions mcp;
+UsuariosOptions usuarios;
 try
 {
     foundry = Configuracao.Ler<FoundryOptions>(config, "Foundry");
+    mcp = Configuracao.Ler<McpOptions>(config, "Mcp");
+    usuarios = Configuracao.Ler<UsuariosOptions>(config, "Usuarios");
 }
 catch (FalhaDeIntegracaoException ex)
 {
@@ -23,13 +27,15 @@ catch (FalhaDeIntegracaoException ex)
     return 1;
 }
 
-var dependencias = await Preflight.ExecutarAsync(foundry);
+var dependencias = await Preflight.ExecutarAsync(usuarios, mcp, foundry);
 if (dependencias is null)
 {
     return 1;
 }
 
-var agente = new AgenteDeViagens(dependencias.ChatClient, DateOnly.FromDateTime(DateTime.Now));
+await using var conexaoMcp = dependencias.Mcp;
+
+var agente = new AgenteDeViagens(dependencias.ChatClient, conexaoMcp.Tools, DateOnly.FromDateTime(DateTime.Now));
 
 // Ctrl+C durante uma resposta interrompe só a resposta, não o programa.
 CancellationTokenSource? respostaAtual = null;

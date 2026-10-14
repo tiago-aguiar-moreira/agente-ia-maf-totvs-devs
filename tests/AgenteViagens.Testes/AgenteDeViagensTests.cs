@@ -1,4 +1,5 @@
 using AgenteViagens.Testes.Fakes;
+using Microsoft.Extensions.AI;
 
 namespace AgenteViagens.Testes;
 
@@ -26,5 +27,21 @@ public class AgenteDeViagensTests
         var enviado = chat.TextoEnviadoAoModelo(0);
         Assert.Contains("agente de viagens", enviado);
         Assert.Contains("quero viajar", enviado);
+    }
+
+    [Fact]
+    public async Task Executa_tool_pedida_pelo_modelo_e_devolve_a_resposta_final()
+    {
+        var hoteisBuscados = 0;
+        var buscarHoteis = AIFunctionFactory.Create((string estado) => { hoteisBuscados++; return "Chalé das Hortênsias"; }, "buscar_hoteis");
+        var chat = new ChatClientFalso()
+            .ResponderChamada("c1", "buscar_hoteis", new() { ["estado"] = "RS" })
+            .ResponderTexto("Encontrei o Chalé das Hortênsias.");
+        var agente = Montar.Agente(chat, [buscarHoteis]);
+
+        var resposta = await agente.ConversarTudoAsync("hotéis no RS?");
+
+        Assert.Equal(1, hoteisBuscados);
+        Assert.Equal("Encontrei o Chalé das Hortênsias.", resposta);
     }
 }

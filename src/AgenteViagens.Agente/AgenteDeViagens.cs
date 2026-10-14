@@ -14,12 +14,16 @@ public sealed class AgenteDeViagens
 
     private readonly AIAgent _agente;
 
-    public AgenteDeViagens(IChatClient chatClient, DateOnly hoje)
+    public AgenteDeViagens(IChatClient chatClient, IEnumerable<AITool> tools, DateOnly hoje)
     {
         _agente = new ChatClientAgent(chatClient, new ChatClientAgentOptions
         {
             Name = "AgenteDeViagens",
-            ChatOptions = new ChatOptions { Instructions = Instrucoes.Montar(hoje) },
+            ChatOptions = new ChatOptions
+            {
+                Instructions = Instrucoes.Montar(hoje),
+                Tools = [.. tools], // as tools do MCP são AIFunctions: o MAF as entrega ao modelo e executa as chamadas
+            },
         });
     }
 
