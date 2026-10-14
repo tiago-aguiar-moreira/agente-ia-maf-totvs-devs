@@ -15,17 +15,21 @@ Tela.Escrever(ConsoleColor.Cyan, "✈  Agente de Viagens — Microsoft Agent Fra
 FoundryOptions foundry;
 McpOptions mcp;
 UsuariosOptions usuarios;
+LangfuseOptions langfuse;
 try
 {
     foundry = Configuracao.Ler<FoundryOptions>(config, "Foundry");
     mcp = Configuracao.Ler<McpOptions>(config, "Mcp");
     usuarios = Configuracao.Ler<UsuariosOptions>(config, "Usuarios");
+    langfuse = Configuracao.Ler<LangfuseOptions>(config, "Langfuse");
 }
 catch (FalhaDeIntegracaoException ex)
 {
     Tela.Erro(ex.Message);
     return 1;
 }
+
+using var telemetria = Telemetria.Iniciar(langfuse, AgenteDeViagens.FonteDeTelemetria);
 
 var dependencias = await Preflight.ExecutarAsync(usuarios, mcp, foundry);
 if (dependencias is null)
@@ -37,6 +41,7 @@ await using var conexaoMcp = dependencias.Mcp;
 
 var agente = new AgenteDeViagens(
     dependencias.ChatClient, conexaoMcp.Tools, new ConsoleInteracao(), DateOnly.FromDateTime(DateTime.Now));
+Tela.Ok("Telemetria → Langfuse");
 
 // Ctrl+C durante uma resposta interrompe só a resposta, não o programa.
 CancellationTokenSource? respostaAtual = null;

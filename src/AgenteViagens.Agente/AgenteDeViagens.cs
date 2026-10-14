@@ -31,6 +31,9 @@ public sealed class AgenteDeViagens
             })
             .AsBuilder()
             .Use(new LogToolMiddleware(interacao).InvocarAsync)
+            // Prompts e respostas vão para os traces (EnableSensitiveData). O JWT não: ele está no
+            // transporte HTTP do MCP, fora das mensagens.
+            .UseOpenTelemetry(FonteDeTelemetria, cfg => cfg.EnableSensitiveData = true)
             .Build();
     }
 
