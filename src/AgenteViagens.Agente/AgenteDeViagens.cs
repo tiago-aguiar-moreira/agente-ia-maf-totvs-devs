@@ -13,6 +13,7 @@ public sealed class AgenteDeViagens
     public const string FonteDeTelemetria = "AgenteViagens";
 
     private readonly AIAgent _agente;
+    private AgentSession? _sessao; // o histórico da conversa vive aqui
 
     public AgenteDeViagens(IChatClient chatClient, IEnumerable<AITool> tools, DateOnly hoje)
     {
@@ -30,7 +31,9 @@ public sealed class AgenteDeViagens
     public async IAsyncEnumerable<string> ConversarAsync(
         string mensagem, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var update in _agente.RunStreamingAsync(mensagem, cancellationToken: cancellationToken))
+        _sessao ??= await _agente.CreateSessionAsync(cancellationToken);
+
+        await foreach (var update in _agente.RunStreamingAsync(mensagem, _sessao, cancellationToken: cancellationToken))
         {
             if (!string.IsNullOrEmpty(update.Text))
             {

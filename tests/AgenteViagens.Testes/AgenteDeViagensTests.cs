@@ -44,4 +44,20 @@ public class AgenteDeViagensTests
         Assert.Equal(1, hoteisBuscados);
         Assert.Equal("Encontrei o Chalé das Hortênsias.", resposta);
     }
+
+    [Fact]
+    public async Task Lembra_a_conversa_anterior_na_mesma_sessao()
+    {
+        var chat = new ChatClientFalso()
+            .ResponderTexto("Gramado é ótima em dezembro!")
+            .ResponderTexto("Sim, tem Natal Luz.");
+        var agente = Montar.Agente(chat);
+
+        await agente.ConversarTudoAsync("Quero ir a Gramado");
+        await agente.ConversarTudoAsync("Tem algum evento lá?");
+
+        var segundaChamada = chat.TextoEnviadoAoModelo(1);
+        Assert.Contains("Quero ir a Gramado", segundaChamada);
+        Assert.Contains("Gramado é ótima em dezembro!", segundaChamada);
+    }
 }
