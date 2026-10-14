@@ -12,10 +12,11 @@ public static class Montar
         ChatClientFalso chat, IEnumerable<AITool>? tools = null, InteracaoFalsa? interacao = null) =>
         new(chat, tools ?? [], interacao ?? new InteracaoFalsa(), Hoje);
 
-    public static async Task<string> ConversarTudoAsync(this AgenteDeViagens agente, string mensagem)
+    public static async Task<string> ConversarTudoAsync(
+        this AgenteDeViagens agente, string mensagem, CancellationToken cancellationToken = default)
     {
         var texto = "";
-        await foreach (var trecho in agente.ConversarAsync(mensagem))
+        await foreach (var trecho in agente.ConversarAsync(mensagem, cancellationToken))
         {
             texto += trecho;
         }

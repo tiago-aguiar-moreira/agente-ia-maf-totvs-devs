@@ -64,18 +64,41 @@ public sealed class AgenteDeViagens
 
             // O MAF pausou: há tools sensíveis esperando o "sim" do usuário.
             List<AIContent> respostas = [];
-            foreach (var pedido in pedidos)
+            try
             {
-                var chamada = (FunctionCallContent)pedido.ToolCall;
-                var aprovado = await _interacao.ConfirmarAcaoAsync(
-                    chamada.Name, chamada.Arguments ?? new Dictionary<string, object?>(), cancellationToken);
-                respostas.Add(aprovado
-                    ? pedido.CreateResponse(true)
-                    // Sem o motivo, o modelo costuma achar que foi falha do sistema.
-                    : pedido.CreateResponse(false, "O usuário recusou esta ação; nada foi executado."));
+                foreach (var pedido in pedidos)
+                {
+                    var chamada = (FunctionCallContent)pedido.ToolCall;
+                    var aprovado = await _interacao.ConfirmarAcaoAsync(
+                        chamada.Name, chamada.Arguments ?? new Dictionary<string, object?>(), cancellationToken);
+                    respostas.Add(aprovado
+                        ? pedido.CreateResponse(true)
+                        // Sem o motivo, o modelo costuma achar que foi falha do sistema.
+                        : pedido.CreateResponse(false, "O usuário recusou esta ação; nada foi executado."));
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            catch (OperationCanceledException)
+            {
+                await FecharRodadaInterrompidaAsync(pedidos);
+                throw;
             }
 
             entrada = [new(ChatRole.User, respostas)]; // continua na mesma sessão
+        }
+    }
+
+    /// <summary>
+    /// Ctrl+C durante a confirmação: nega tudo e responde os pedidos pendentes. Sem isso, a sessão
+    /// guardaria uma chamada de tool sem resposta e as próximas mensagens seriam recusadas.
+    /// </summary>
+    private async Task FecharRodadaInterrompidaAsync(List<ToolApprovalRequestContent> pedidos)
+    {
+        List<AIContent> negacoes = [.. pedidos.Select(p => p.CreateResponse(false, "O usuário interrompeu; nada foi executado."))];
+        await foreach (var _ in _agente.RunStreamingAsync([new(ChatRole.User, negacoes)], _sessao, cancellationToken: CancellationToken.None))
+        {
+            // a resposta do modelo a esta rodada é descartada: o usuário pediu para interromper
         }
     }
 }

@@ -45,7 +45,7 @@ dotnet test
 dotnet run --project src/AgenteViagens.Console
 ```
 
-O preflight confere login, MCP, Foundry e telemetria antes do primeiro prompt. Digite `sair` para
+O preflight confere login, MCP, Foundry e as chaves do Langfuse antes do primeiro prompt. Digite `sair` para
 encerrar; `Ctrl+C` interrompe só a resposta em andamento.
 
 ## Etapas da palestra

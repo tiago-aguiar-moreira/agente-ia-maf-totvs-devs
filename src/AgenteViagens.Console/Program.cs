@@ -31,7 +31,7 @@ catch (FalhaDeIntegracaoException ex)
 
 using var telemetria = Telemetria.Iniciar(langfuse, AgenteDeViagens.FonteDeTelemetria);
 
-var dependencias = await Preflight.ExecutarAsync(usuarios, mcp, foundry);
+var dependencias = await Preflight.ExecutarAsync(usuarios, mcp, foundry, langfuse);
 if (dependencias is null)
 {
     return 1;
@@ -41,7 +41,6 @@ await using var conexaoMcp = dependencias.Mcp;
 
 var agente = new AgenteDeViagens(
     dependencias.ChatClient, conexaoMcp.Tools, new ConsoleInteracao(), DateOnly.FromDateTime(DateTime.Now));
-Tela.Ok("Telemetria → Langfuse");
 
 // Ctrl+C durante uma resposta interrompe só a resposta, não o programa.
 CancellationTokenSource? respostaAtual = null;

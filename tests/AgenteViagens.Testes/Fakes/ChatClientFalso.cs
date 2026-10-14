@@ -34,6 +34,7 @@ public sealed class ChatClientFalso : IChatClient
     public Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested(); // como um client real
         MensagensRecebidas.Add(messages.ToList());
         OpcoesRecebidas.Add(options);
         return Task.FromResult(_respostas.Dequeue());

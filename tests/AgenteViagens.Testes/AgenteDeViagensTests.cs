@@ -177,4 +177,25 @@ public class AgenteDeViagensTests
 
         Assert.Empty(interacao.ToolsNotificadas);
     }
+
+    [Fact]
+    public async Task Ctrl_c_na_confirmacao_nao_executa_e_nao_quebra_a_sessao()
+    {
+        var (criarReserva, chamadas) = ToolContada("criar_reserva");
+        var chat = new ChatClientFalso()
+            .ResponderChamada("c1", "criar_reserva")
+            .ResponderTexto("Ok, nada foi feito.") // fecha a rodada interrompida
+            .ResponderTexto("Oi de novo!");
+        using var ctrlC = new CancellationTokenSource();
+        var interacao = new InteracaoFalsa(true) { AoConfirmar = ctrlC.Cancel };
+        var agente = Montar.Agente(chat, [criarReserva], interacao);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => agente.ConversarTudoAsync("reserva", ctrlC.Token));
+        var resposta = await agente.ConversarTudoAsync("oi");
+
+        Assert.Equal(0, chamadas());
+        Assert.Equal("Oi de novo!", resposta);
+        var resultados = chat.MensagensRecebidas[^1].SelectMany(m => m.Contents).OfType<FunctionResultContent>();
+        Assert.Contains(resultados, r => r.CallId == "c1");
+    }
 }

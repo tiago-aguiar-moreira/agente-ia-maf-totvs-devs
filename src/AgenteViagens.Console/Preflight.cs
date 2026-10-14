@@ -10,7 +10,8 @@ public sealed record Dependencias(SessaoDoUsuario Sessao, ConexaoMcp Mcp, IChatC
 public static class Preflight
 {
     public static async Task<Dependencias?> ExecutarAsync(
-        UsuariosOptions usuarios, McpOptions mcp, FoundryOptions foundry, CancellationToken cancellationToken = default)
+        UsuariosOptions usuarios, McpOptions mcp, FoundryOptions foundry, LangfuseOptions langfuse,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -42,6 +43,13 @@ public static class Preflight
                 var cliente = FoundryChatClientFactory.Criar(foundry);
                 await FoundryChatClientFactory.VerificarAsync(cliente, cancellationToken);
                 return (cliente, $"Foundry — {foundry.Deployment}");
+            });
+
+            await Passo(async () =>
+            {
+                using var http = new HttpClient();
+                await Telemetria.VerificarAsync(langfuse, http, cancellationToken);
+                return (true, "Telemetria → Langfuse");
             });
 
             return new Dependencias(sessao, conexao, chatClient);

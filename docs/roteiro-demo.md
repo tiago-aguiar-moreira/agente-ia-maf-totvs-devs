@@ -68,7 +68,8 @@ Esperado: a Bia recusa pelo system prompt e pede confirmação de novo → `sim`
 **ainda** pede `(s/N)` → **s** → reserva criada.
 Mensagem: segunda linha de defesa — mesmo que o prompt seja enganado, o código não executa sem o "s".
 
-Atenção: qualquer resposta diferente de `s`/`sim` no `(s/N)` conta como **não**.
+Atenção: qualquer resposta diferente de `s`/`sim` no `(s/N)` conta como **não**. `Ctrl+C` no `(s/N)`
+também nega: o agente fecha a rodada com "interrompido" e a conversa continua normalmente.
 
 ## Etapa 5 — Middleware (3 min)
 
