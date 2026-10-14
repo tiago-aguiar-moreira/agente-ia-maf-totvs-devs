@@ -35,7 +35,8 @@ if (dependencias is null)
 
 await using var conexaoMcp = dependencias.Mcp;
 
-var agente = new AgenteDeViagens(dependencias.ChatClient, conexaoMcp.Tools, DateOnly.FromDateTime(DateTime.Now));
+var agente = new AgenteDeViagens(
+    dependencias.ChatClient, conexaoMcp.Tools, new ConsoleInteracao(), DateOnly.FromDateTime(DateTime.Now));
 
 // Ctrl+C durante uma resposta interrompe só a resposta, não o programa.
 CancellationTokenSource? respostaAtual = null;

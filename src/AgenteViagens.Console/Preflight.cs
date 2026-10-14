@@ -1,3 +1,4 @@
+using AgenteViagens.Agente;
 using AgenteViagens.Infra;
 using Microsoft.Extensions.AI;
 
@@ -23,7 +24,17 @@ public static class Preflight
             var conexao = await Passo(async () =>
             {
                 var c = await McpToolsFactory.ConectarAsync(mcp, sessao.Token, cancellationToken);
-                return (c, $"MCP conectado — {c.Tools.Count} tools");
+
+                var ausentes = RegrasDeAprovacao.SensiveisAusentes(c.Tools);
+                if (ausentes.Count > 0)
+                {
+                    await c.DisposeAsync();
+                    throw new FalhaDeIntegracaoException(
+                        $"Tools sensíveis não publicadas pelo MCP: {string.Join(", ", ausentes)}. Atualize RegrasDeAprovacao.");
+                }
+
+                var comAprovacao = RegrasDeAprovacao.Aplicar(c.Tools).Count(RegrasDeAprovacao.ExigeAprovacao);
+                return (c, $"MCP conectado — {c.Tools.Count} tools ({comAprovacao} exigem aprovação)");
             });
 
             var chatClient = await Passo(async () =>

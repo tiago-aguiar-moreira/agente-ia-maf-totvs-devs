@@ -5,25 +5,28 @@ using Microsoft.Extensions.AI;
 namespace AgenteViagens.Agente;
 
 /// <summary>
-/// O agente de viagens. Recebe um IChatClient qualquer (Foundry, OpenAI, Ollama...) — não sabe
-/// de onde vem o modelo.
+/// O agente de viagens. Recebe um IChatClient qualquer (Foundry, OpenAI, Ollama...) e as tools —
+/// não sabe de onde vem o modelo nem que as tools vêm de um servidor MCP.
 /// </summary>
 public sealed class AgenteDeViagens
 {
     public const string FonteDeTelemetria = "AgenteViagens";
 
     private readonly AIAgent _agente;
+    private readonly IInteracaoComUsuario _interacao;
     private AgentSession? _sessao; // o histórico da conversa vive aqui
 
-    public AgenteDeViagens(IChatClient chatClient, IEnumerable<AITool> tools, DateOnly hoje)
+    public AgenteDeViagens(IChatClient chatClient, IEnumerable<AITool> tools, IInteracaoComUsuario interacao, DateOnly hoje)
     {
+        _interacao = interacao;
+
         _agente = new ChatClientAgent(chatClient, new ChatClientAgentOptions
         {
             Name = "AgenteDeViagens",
             ChatOptions = new ChatOptions
             {
                 Instructions = Instrucoes.Montar(hoje),
-                Tools = [.. tools], // as tools do MCP são AIFunctions: o MAF as entrega ao modelo e executa as chamadas
+                Tools = RegrasDeAprovacao.Aplicar(tools),
             },
         });
     }
@@ -32,13 +35,41 @@ public sealed class AgenteDeViagens
         string mensagem, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         _sessao ??= await _agente.CreateSessionAsync(cancellationToken);
+        List<ChatMessage> entrada = [new(ChatRole.User, mensagem)];
 
-        await foreach (var update in _agente.RunStreamingAsync(mensagem, _sessao, cancellationToken: cancellationToken))
+        while (true)
         {
-            if (!string.IsNullOrEmpty(update.Text))
+            List<ToolApprovalRequestContent> pedidos = [];
+
+            await foreach (var update in _agente.RunStreamingAsync(entrada, _sessao, cancellationToken: cancellationToken))
             {
-                yield return update.Text;
+                pedidos.AddRange(update.Contents.OfType<ToolApprovalRequestContent>());
+
+                if (!string.IsNullOrEmpty(update.Text))
+                {
+                    yield return update.Text;
+                }
             }
+
+            if (pedidos.Count == 0)
+            {
+                yield break;
+            }
+
+            // O MAF pausou: há tools sensíveis esperando o "sim" do usuário.
+            List<AIContent> respostas = [];
+            foreach (var pedido in pedidos)
+            {
+                var chamada = (FunctionCallContent)pedido.ToolCall;
+                var aprovado = await _interacao.ConfirmarAcaoAsync(
+                    chamada.Name, chamada.Arguments ?? new Dictionary<string, object?>(), cancellationToken);
+                respostas.Add(aprovado
+                    ? pedido.CreateResponse(true)
+                    // Sem o motivo, o modelo costuma achar que foi falha do sistema.
+                    : pedido.CreateResponse(false, "O usuário recusou esta ação; nada foi executado."));
+            }
+
+            entrada = [new(ChatRole.User, respostas)]; // continua na mesma sessão
         }
     }
 }

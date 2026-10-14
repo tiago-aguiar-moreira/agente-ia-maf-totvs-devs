@@ -11,4 +11,7 @@ public static class EntradaDoUsuario
         "" => TipoDeEntrada.Vazia,
         _ => TipoDeEntrada.Mensagem,
     };
+
+    /// <summary>Só "s" ou "sim" aprovam. Enter vazio ou qualquer outra coisa = NÃO.</summary>
+    public static bool Aprovou(string? resposta) => resposta?.Trim().ToLowerInvariant() is "s" or "sim";
 }

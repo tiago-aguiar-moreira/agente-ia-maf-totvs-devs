@@ -8,8 +8,9 @@ public static class Montar
 {
     public static readonly DateOnly Hoje = new(2026, 10, 14);
 
-    public static AgenteDeViagens Agente(ChatClientFalso chat, IEnumerable<AITool>? tools = null) =>
-        new(chat, tools ?? [], Hoje);
+    public static AgenteDeViagens Agente(
+        ChatClientFalso chat, IEnumerable<AITool>? tools = null, InteracaoFalsa? interacao = null) =>
+        new(chat, tools ?? [], interacao ?? new InteracaoFalsa(), Hoje);
 
     public static async Task<string> ConversarTudoAsync(this AgenteDeViagens agente, string mensagem)
     {
