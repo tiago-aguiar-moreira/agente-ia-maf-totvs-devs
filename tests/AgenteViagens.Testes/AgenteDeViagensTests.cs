@@ -147,4 +147,34 @@ public class AgenteDeViagensTests
             .SelectMany(m => m.Contents).OfType<FunctionResultContent>().Single();
         Assert.Contains("usuário recusou", resultado.Result?.ToString());
     }
+
+    [Fact]
+    public async Task Middleware_notifica_cada_tool_executada_com_seus_argumentos()
+    {
+        var buscarHoteis = AIFunctionFactory.Create((string estado) => "Chalé", "buscar_hoteis");
+        var chat = new ChatClientFalso()
+            .ResponderChamada("c1", "buscar_hoteis", new() { ["estado"] = "RS" })
+            .ResponderTexto("ok");
+        var interacao = new InteracaoFalsa();
+        var agente = Montar.Agente(chat, [buscarHoteis], interacao);
+
+        await agente.ConversarTudoAsync("hotéis no RS");
+
+        var (tool, argumentos) = Assert.Single(interacao.ToolsNotificadas);
+        Assert.Equal("buscar_hoteis", tool);
+        Assert.Equal("RS", argumentos["estado"]?.ToString());
+    }
+
+    [Fact]
+    public async Task Middleware_nao_notifica_tool_sensivel_negada()
+    {
+        var (criarReserva, _) = ToolContada("criar_reserva");
+        var chat = new ChatClientFalso().ResponderChamada("c1", "criar_reserva").ResponderTexto("ok, não reservei");
+        var interacao = new InteracaoFalsa(false);
+        var agente = Montar.Agente(chat, [criarReserva], interacao);
+
+        await agente.ConversarTudoAsync("reserva");
+
+        Assert.Empty(interacao.ToolsNotificadas);
+    }
 }

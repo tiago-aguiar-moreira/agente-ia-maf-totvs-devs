@@ -7,4 +7,6 @@ namespace AgenteViagens.Agente;
 public interface IInteracaoComUsuario
 {
     Task<bool> ConfirmarAcaoAsync(string tool, IDictionary<string, object?> argumentos, CancellationToken cancellationToken);
+
+    void NotificarChamadaDeTool(string tool, IDictionary<string, object?> argumentos, TimeSpan duracao);
 }

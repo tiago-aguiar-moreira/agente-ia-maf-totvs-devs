@@ -21,14 +21,17 @@ public sealed class AgenteDeViagens
         _interacao = interacao;
 
         _agente = new ChatClientAgent(chatClient, new ChatClientAgentOptions
-        {
-            Name = "AgenteDeViagens",
-            ChatOptions = new ChatOptions
             {
-                Instructions = Instrucoes.Montar(hoje),
-                Tools = RegrasDeAprovacao.Aplicar(tools),
-            },
-        });
+                Name = "AgenteDeViagens",
+                ChatOptions = new ChatOptions
+                {
+                    Instructions = Instrucoes.Montar(hoje),
+                    Tools = RegrasDeAprovacao.Aplicar(tools),
+                },
+            })
+            .AsBuilder()
+            .Use(new LogToolMiddleware(interacao).InvocarAsync)
+            .Build();
     }
 
     public async IAsyncEnumerable<string> ConversarAsync(

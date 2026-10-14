@@ -13,4 +13,9 @@ public sealed class InteracaoFalsa(params bool[] respostas) : IInteracaoComUsuar
         ConfirmacoesPedidas.Add(tool);
         return Task.FromResult(_respostas.Dequeue());
     }
+
+    public List<(string Tool, IDictionary<string, object?> Argumentos)> ToolsNotificadas { get; } = [];
+
+    public void NotificarChamadaDeTool(string tool, IDictionary<string, object?> argumentos, TimeSpan duracao) =>
+        ToolsNotificadas.Add((tool, argumentos));
 }
