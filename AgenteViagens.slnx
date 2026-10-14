@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AgenteViagens.Agente/AgenteViagens.Agente.csproj" />
+    <Project Path="src/AgenteViagens.Console/AgenteViagens.Console.csproj" />
+    <Project Path="src/AgenteViagens.Infra/AgenteViagens.Infra.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AgenteViagens.Testes/AgenteViagens.Testes.csproj" />
+  </Folder>
+</Solution>

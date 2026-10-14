@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\AgenteViagens.Agente\AgenteViagens.Agente.csproj" />
+    <ProjectReference Include="..\AgenteViagens.Infra\AgenteViagens.Infra.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>AgenteViagens.ConsoleApp</RootNamespace>
+  </PropertyGroup>
+
+</Project>
