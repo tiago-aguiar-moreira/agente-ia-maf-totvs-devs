@@ -1,6 +1,8 @@
 # Agente de Viagens — Microsoft Agent Framework
 
-Demo da palestra **"Como criar um agente de IA em .NET com o Microsoft Agent Framework"**.
+Demo da palestra **"Como criar um agente de IA em .NET com o Microsoft Agent Framework"**,
+apresentada em live no canal **TOTVS Developers**: [assista no YouTube](https://www.youtube.com/watch?v=zsLJIQU87yk).
+
 Um agente de viagens em console que usa um modelo do **Azure AI Foundry** e as tools de um
 **servidor MCP** de agência de viagens, com system prompt blindado, sessão, aprovação humana,
 middleware e observabilidade no **Langfuse**.
@@ -17,9 +19,11 @@ Console → Agente e Console → Infra. Agente e Infra não se conhecem.
 ## Pré-requisitos
 
 1. **.NET 10 SDK**.
-2. **Servidor MCP da agência** no ar (repositório da palestra "Como construir e consumir servidores
-   MCP em .NET", com validação de JWT): `docker compose up -d --build`. Expõe o MCP em
-   `http://localhost:5400` e o login em `http://localhost:5450`.
+2. **Servidor MCP da agência** no ar: clone
+   [tiago-aguiar-moreira/mvp-conf-2026-mcp](https://github.com/tiago-aguiar-moreira/mvp-conf-2026-mcp)
+   (palestra "Como construir e consumir servidores MCP em .NET"), siga o README dele e rode
+   `docker compose up -d --build`. Expõe o MCP em `http://localhost:5400` e o login em
+   `http://localhost:5450`.
 3. **Azure AI Foundry** com um deployment `gpt-4.1` — veja [docs/provisionamento-foundry.md](docs/provisionamento-foundry.md) — e `az login`.
 4. **Langfuse Cloud** (plano gratuito) com um par de API keys.
 

@@ -22,7 +22,8 @@ Bloco 1 (~13 min) e fechamento (~5 min). Um conceito por slide; código só nos 
 ## 4. MCP em um slide (2 min)
 - "USB-C das tools": o agente **descobre** as tools em tempo de execução (`ListToolsAsync`).
 - O servidor da agência já existe: 30 tools (hotéis, passagens, atividades, restaurantes, clima, rotas…).
-- Referência à palestra "Como construir e consumir servidores MCP em .NET".
+- Referência à palestra "Como construir e consumir servidores MCP em .NET" — código em
+  https://github.com/tiago-aguiar-moreira/mvp-conf-2026-mcp.
 
 ## 5. O cenário (2 min)
 - Diagrama: `Console → Agente → Infra → { Foundry (gpt-4.1), MCP (JWT), Langfuse (OTLP) }`.
