@@ -24,3 +24,8 @@ public sealed class LangfuseOptions
     public string PublicKey { get; init; } = "";
     public string SecretKey { get; init; } = "";
 }
+
+public sealed class PostgresOptions
+{
+    public string ConnectionString { get; init; } = "";
+}
