@@ -10,21 +10,24 @@ public sealed record Dependencias(SessaoDoUsuario Sessao, ConexaoMcp Mcp, IChatC
 public static class Preflight
 {
     public static async Task<Dependencias?> ExecutarAsync(
-        UsuariosOptions usuarios, McpOptions mcp, FoundryOptions foundry, LangfuseOptions langfuse,
+        UsuariosOptions usuariosOptions,
+        McpOptions mcpOptions,
+        FoundryOptions foundryOptions,
+        LangfuseOptions langfuseOptions,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var sessao = await Passo(async () =>
             {
-                var cliente = new UsuariosClient(new HttpClient { BaseAddress = new Uri(usuarios.Url) });
-                var s = await cliente.LoginAsync(usuarios.Email, usuarios.Senha, cancellationToken);
+                var cliente = new UsuariosClient(new HttpClient { BaseAddress = new Uri(usuariosOptions.Url) });
+                var s = await cliente.LoginAsync(usuariosOptions.Email, usuariosOptions.Senha, cancellationToken);
                 return (s, $"Login como {s.Email} (token válido até {s.ExpiraEm.ToLocalTime():HH:mm})");
             });
 
-            var conexao = await Passo(async () =>
+            var mcp = await Passo(async () =>
             {
-                var c = await McpToolsFactory.ConectarAsync(mcp, sessao.Token, cancellationToken);
+                var c = await McpToolsFactory.ConectarAsync(mcpOptions, sessao.Token, cancellationToken);
 
                 var ausentes = RegrasDeAprovacao.SensiveisAusentes(c.Tools);
                 if (ausentes.Count > 0)
@@ -40,19 +43,19 @@ public static class Preflight
 
             var chatClient = await Passo(async () =>
             {
-                var cliente = FoundryChatClientFactory.Criar(foundry);
+                var cliente = FoundryChatClientFactory.Criar(foundryOptions);
                 await FoundryChatClientFactory.VerificarAsync(cliente, cancellationToken);
-                return (cliente, $"Foundry — {foundry.Deployment}");
+                return (cliente, $"Foundry — {foundryOptions.Deployment}");
             });
 
             await Passo(async () =>
             {
                 using var http = new HttpClient();
-                await Telemetria.VerificarAsync(langfuse, http, cancellationToken);
+                await Telemetria.VerificarAsync(langfuseOptions, http, cancellationToken);
                 return (true, "Telemetria → Langfuse");
             });
 
-            return new Dependencias(sessao, conexao, chatClient);
+            return new Dependencias(sessao, mcp, chatClient);
         }
         catch
         {
