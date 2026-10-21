@@ -63,7 +63,7 @@ pode guardar estado"). As etapas 1 a 7 continuam com a Responses API.
 - Não apagar, renomear ou pesquisar sessões pelo console.
 - Não usar reducer / limite de mensagens.
 - Não agrupar traces por sessão no Langfuse.
-- Não usar framework de migrações; o schema é criado na inicialização (`CREATE TABLE IF NOT EXISTS`).
+- Não usar migrações do EF; o schema é criado na inicialização (`EnsureCreatedAsync`).
 - Não adicionar Postgres ao repositório do servidor MCP.
 
 ## Anti-metas (falharia mesmo funcionando)
@@ -102,13 +102,51 @@ pode guardar estado"). As etapas 1 a 7 continuam com a Responses API.
 - **Cliente:** `FoundryChatClientFactory.Criar` passa a usar Chat Completions.
 - **Banco:** `docker-compose.yml` na raiz com o serviço `postgres` (porta 5432, volume nomeado).
   Configuração `Postgres:ConnectionString` (com a senha) em user-secrets.
-- **Acesso a dados:** `Npgsql` direto, sem EF Core — menos conceitos na tela, e o SQL do provider
-  fica visível no slide. *(Decisão do Claude.)*
-- **Schema** *(decisão do Claude)*:
-  - `sessoes (id uuid PK, usuario_id uuid, titulo text, criada_em timestamptz, atualizada_em timestamptz)`
-  - `mensagens (id bigserial PK, sessao_id uuid FK → sessoes, conteudo jsonb, criada_em timestamptz)`
-  - `conteudo` é o `ChatMessage` serializado com `AIJsonUtilities.DefaultOptions`, para que
-    chamadas e resultados de tools e pedidos/respostas de aprovação façam o caminho de ida e volta.
+- **Acesso a dados:** **EF Core** com o provider `Npgsql.EntityFrameworkCore.PostgreSQL` (versão
+  compatível com .NET 10), num `DbContext` em `AgenteViagens.Infra`. *(Decisão do Tiago.)*
+- **Criação do schema:** `Database.EnsureCreatedAsync()` no passo do Postgres do preflight, sem
+  migrações — o mesmo padrão das APIs do servidor MCP. *(Decisão do Claude.)*
+- **Tabelas** *(decisão do Claude)*:
+
+  **`sessoes`** — uma linha por conversa.
+
+  | Coluna | Tipo | Papel |
+  |---|---|---|
+  | `id` | `uuid` PK | Identifica a conversa. É o que a `AgentSession` guarda para o provider achar o histórico. |
+  | `usuario_id` | `uuid`, indexada | Dono da conversa (claim `sub` do JWT). Filtra a lista e impede retomar a conversa de outro usuário. |
+  | `titulo` | `varchar(80)` | Rótulo para a pessoa reconhecer a conversa na lista (ver abaixo). |
+  | `criada_em` | `timestamptz` | Quando a conversa começou. |
+  | `atualizada_em` | `timestamptz` | Última mensagem gravada. Ordena a lista (mais recente primeiro) e é a data exibida nela. |
+
+  **`mensagens`** — uma linha por mensagem da conversa, na ordem em que foi gravada.
+
+  | Coluna | Tipo | Papel |
+  |---|---|---|
+  | `id` | `bigint` identidade, PK | Ordem de gravação. O provider devolve as mensagens ordenadas por ela. |
+  | `sessao_id` | `uuid` FK → `sessoes.id` (cascade) | A conversa a que a mensagem pertence. |
+  | `papel` | `varchar(20)` | `user`, `assistant` ou `tool`. Redundante com o JSON; existe para ler a tabela com um `SELECT` na demo e para montar a "última troca" sem desserializar tudo. |
+  | `conteudo` | `jsonb` | A `ChatMessage` inteira serializada com `AIJsonUtilities.DefaultOptions`: texto, chamadas e resultados de tools, pedidos e respostas de aprovação. É o que volta para o modelo. |
+  | `criada_em` | `timestamptz` | Quando a mensagem foi gravada. |
+
+  Exemplo de uma conversa curta:
+
+  ```
+  sessoes
+  id        usuario_id  titulo                                           atualizada_em
+  7f3c…     a1b2…       Quero ir a Gramado de 12 a 14 de dezembro com…   21/10 19:42
+
+  mensagens
+  id  sessao_id  papel      conteudo (resumido)
+  1   7f3c…      user       {"role":"user","contents":[{"$type":"text","text":"Quero ir a Gramado…"}]}
+  2   7f3c…      assistant  {"role":"assistant","contents":[{"$type":"functionCall","name":"buscar_hoteis",…}]}
+  3   7f3c…      tool       {"role":"tool","contents":[{"$type":"functionResult",…}]}
+  4   7f3c…      assistant  {"role":"assistant","contents":[{"$type":"text","text":"Encontrei o Chalé…"}]}
+  ```
+
+- **O título e o seu papel:** serve **só para a lista ao iniciar** — é o que a pessoa lê para
+  reconhecer "aquela conversa sobre Gramado". Não vai para o modelo e não afeta o histórico.
+  É preenchido automaticamente com a primeira mensagem do usuário na conversa, cortada em 60
+  caracteres com "…"; ninguém digita título. *(Decisão do Claude.)*
 - **Provider:** `PostgresChatHistoryProvider : ChatHistoryProvider` em `AgenteViagens.Infra`.
   `ProvideChatHistoryAsync` lê as mensagens da sessão em ordem; `StoreChatHistoryAsync` grava
   as novas (request + response) e atualiza `atualizada_em`.
@@ -123,7 +161,7 @@ pode guardar estado"). As etapas 1 a 7 continuam com a Responses API.
   continuam lidas linha a linha como hoje. *(Decisão do Claude.)*
 - **Agente:** `AgenteDeViagens` recebe o `ChatHistoryProvider` pela composição (o Console injeta
   o do Postgres) e ganha um jeito de começar uma sessão nova ou retomar uma existente pelo id.
-  A camada Agente não referencia Npgsql.
+  A camada Agente não referencia EF Core nem Npgsql.
 
 ## O que fica para quem implementar
 
