@@ -2,6 +2,7 @@ using AgenteViagens.Agente;
 using AgenteViagens.ConsoleApp;
 using AgenteViagens.Infra;
 using Microsoft.Extensions.Configuration;
+using Spectre.Console;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
@@ -39,8 +40,10 @@ if (dependencias is null)
 
 await using var conexaoMcp = dependencias.Mcp;
 
+using var indicador = new IndicadorDePensamento(AnsiConsole.Console);
 var agente = new AgenteDeViagens(
-    dependencias.ChatClient, conexaoMcp.Tools, new ConsoleInteracao(), DateOnly.FromDateTime(DateTime.Now));
+    dependencias.ChatClient, conexaoMcp.Tools, new ConsoleInteracao(AnsiConsole.Console, Console.In, indicador),
+    DateOnly.FromDateTime(DateTime.Now));
 
 // Ctrl+C durante uma resposta interrompe só a resposta, não o programa.
 CancellationTokenSource? respostaAtual = null;
