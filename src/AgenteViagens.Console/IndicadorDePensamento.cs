@@ -28,7 +28,8 @@ public sealed class IndicadorDePensamento(IAnsiConsole tela) : IIndicadorDePensa
     {
         lock (_trava)
         {
-            if (_timer is not null)
+            // Saída redirecionada (arquivo, pipe): o \r não volta ao começo da linha, então nada de animação.
+            if (_timer is not null || Console.IsOutputRedirected)
             {
                 return;
             }

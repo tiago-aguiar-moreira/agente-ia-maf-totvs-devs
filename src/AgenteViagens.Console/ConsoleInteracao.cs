@@ -17,13 +17,16 @@ public sealed class ConsoleInteracao(IAnsiConsole tela, TextReader entrada, IInd
             .BorderColor(Color.Yellow));
         tela.Markup("[yellow]Confirmar? (s/N):[/] ");
 
-        return Task.FromResult(EntradaDoUsuario.Aprovou(entrada.ReadLine()));
+        var aprovado = EntradaDoUsuario.Aprovou(entrada.ReadLine());
+        indicador.Iniciar(); // o modelo volta a pensar com a resposta
+        return Task.FromResult(aprovado);
     }
 
     public void NotificarChamadaDeTool(string tool, IDictionary<string, object?> argumentos, TimeSpan duracao)
     {
         indicador.Parar();
         tela.MarkupLine($"\n[grey]   🔧 {Markup.Escape($"{tool}({Formatar(argumentos)})")} · {duracao.TotalMilliseconds:N0} ms[/]");
+        indicador.Iniciar(); // o modelo ainda vai ler o resultado da tool
     }
 
     private static string Formatar(IDictionary<string, object?> argumentos) =>

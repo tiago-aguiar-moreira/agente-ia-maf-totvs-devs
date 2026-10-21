@@ -62,6 +62,7 @@ encerrar; `Ctrl+C` interrompe só a resposta em andamento.
 | `etapa-4` | Aprovação humana de tools sensíveis |
 | `etapa-5` | Middleware de log de tools |
 | `etapa-6` | Observabilidade → Langfuse |
+| `etapa-7` | Console com Spectre.Console (visual) |
 
 `git checkout etapa-N` para ver o código em cada ponto; `git diff etapa-3 etapa-4` mostra o que cada etapa acrescentou.
 

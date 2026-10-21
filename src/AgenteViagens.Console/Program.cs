@@ -11,8 +11,6 @@ var config = new ConfigurationBuilder()
     .AddUserSecrets<Program>()
     .Build();
 
-Tela.Escrever(ConsoleColor.Cyan, "✈  Agente de Viagens — Microsoft Agent Framework\n\n");
-
 FoundryOptions foundry;
 McpOptions mcp;
 UsuariosOptions usuarios;
@@ -26,9 +24,11 @@ try
 }
 catch (FalhaDeIntegracaoException ex)
 {
-    Tela.Erro(ex.Message);
+    Tela.Erro(AnsiConsole.Console, ex.Message);
     return 1;
 }
+
+Tela.Banner(AnsiConsole.Console, foundry.Deployment);
 
 using var telemetria = Telemetria.Iniciar(langfuse, AgenteDeViagens.FonteDeTelemetria);
 
@@ -56,11 +56,9 @@ Console.CancelKeyPress += (_, e) =>
     }
 };
 
-Console.WriteLine("\nDigite sua mensagem (ou \"sair\").");
-
 while (true)
 {
-    Tela.Escrever(ConsoleColor.Cyan, "\nVocê: ");
+    AnsiConsole.Markup("\n[cyan]Você:[/] ");
     var linha = Console.ReadLine();
 
     switch (EntradaDoUsuario.Interpretar(linha))
@@ -69,28 +67,39 @@ while (true)
         case TipoDeEntrada.Vazia: continue;
     }
 
-    Tela.Escrever(ConsoleColor.Green, "Agente: ");
     respostaAtual = new CancellationTokenSource();
+    var rotuloEscrito = false;
+    indicador.Iniciar();
     try
     {
         await foreach (var trecho in agente.ConversarAsync(linha!, respostaAtual.Token))
         {
-            Console.Write(trecho);
+            indicador.Parar(); // o texto chegou: sai o spinner, entra o streaming
+            if (!rotuloEscrito)
+            {
+                AnsiConsole.Markup("\n[green]●[/] ");
+                rotuloEscrito = true;
+            }
+            AnsiConsole.Write(new Text(trecho));
         }
     }
     catch (OperationCanceledException)
     {
-        Tela.Escrever(ConsoleColor.DarkGray, " (resposta interrompida)");
+        indicador.Parar();
+        AnsiConsole.Markup("[grey] (resposta interrompida)[/]");
     }
     catch (Exception ex)
     {
-        Tela.Escrever(ConsoleColor.Red, $"\n⚠  Falha ao falar com o modelo, tente de novo. ({ex.Message})");
+        indicador.Parar();
+        AnsiConsole.MarkupLine(
+            $"\n[red]⚠  Falha ao falar com o modelo, tente de novo.[/] [grey]({Markup.Escape(ex.Message)})[/]");
     }
     finally
     {
+        indicador.Parar();
         respostaAtual.Dispose();
         respostaAtual = null;
     }
 
-    Console.WriteLine();
+    AnsiConsole.WriteLine();
 }
