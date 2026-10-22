@@ -47,7 +47,7 @@ var usuarioId = dependencias.Sessao.UsuarioId;
 // O histórico sai da memória do processo e vai para o Postgres: o agente nem percebe a diferença.
 var historico = new PostgresChatHistoryProvider(dependencias.Historico, usuarioId, AgenteDeViagens.ChaveSessaoId);
 
-using var indicador = new IndicadorDePensamento(AnsiConsole.Console);
+using var indicador = new IndicadorDePensamento(AnsiConsole.Console, animar: !Console.IsOutputRedirected);
 var agente = new AgenteDeViagens(
     dependencias.ChatClient, conexaoMcp.Tools, new ConsoleInteracao(AnsiConsole.Console, Console.In, indicador),
     DateOnly.FromDateTime(DateTime.Now), historico);
@@ -111,8 +111,7 @@ while (true)
     catch (Exception ex)
     {
         indicador.Parar();
-        AnsiConsole.MarkupLine(
-            $"\n[red]⚠  Falha ao falar com o modelo, tente de novo.[/] [grey]({Markup.Escape(ex.Message)})[/]");
+        Tela.FalhaNaResposta(AnsiConsole.Console, ex);
     }
     finally
     {

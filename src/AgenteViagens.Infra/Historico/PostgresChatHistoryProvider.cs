@@ -22,7 +22,7 @@ public sealed partial class PostgresChatHistoryProvider(
     {
         var sessaoId = SessaoId(context.Session);
 
-        return await Executar(async db =>
+        return await Executar("ler", async db =>
         {
             await GarantirDono(db, sessaoId, cancellationToken);
 
@@ -47,7 +47,7 @@ public sealed partial class PostgresChatHistoryProvider(
         var novas = context.RequestMessages.Concat(context.ResponseMessages ?? []).ToList();
         var agora = DateTimeOffset.UtcNow;
 
-        await Executar(async db =>
+        await Executar("salvar", async db =>
         {
             var sessao = await GarantirDono(db, sessaoId, cancellationToken);
             if (sessao is null)
@@ -97,7 +97,14 @@ public sealed partial class PostgresChatHistoryProvider(
     public static string Titulo(string texto)
     {
         var linha = EspacosEmBranco().Replace(texto, " ").Trim();
-        return linha.Length <= TamanhoDoTitulo ? linha : linha[..TamanhoDoTitulo] + "…";
+        if (linha.Length <= TamanhoDoTitulo)
+        {
+            return linha;
+        }
+
+        // Não corta um emoji ao meio: metade dele é um caractere inválido, e o Postgres recusa a gravação.
+        var corte = char.IsHighSurrogate(linha[TamanhoDoTitulo - 1]) ? TamanhoDoTitulo - 1 : TamanhoDoTitulo;
+        return linha[..corte] + "…";
     }
 
     private Guid SessaoId(AgentSession? sessao) =>
@@ -116,7 +123,7 @@ public sealed partial class PostgresChatHistoryProvider(
         return sessao;
     }
 
-    private async Task<T> Executar<T>(Func<HistoricoDbContext, Task<T>> acao)
+    private async Task<T> Executar<T>(string verbo, Func<HistoricoDbContext, Task<T>> acao)
     {
         try
         {
@@ -126,7 +133,9 @@ public sealed partial class PostgresChatHistoryProvider(
         catch (Exception ex) when (ex is Npgsql.NpgsqlException or DbUpdateException
                                        or InvalidOperationException { InnerException: Npgsql.NpgsqlException })
         {
-            throw new FalhaDeIntegracaoException($"Não foi possível salvar a conversa no Postgres: {ex.Message}", ex);
+            throw new FalhaDeIntegracaoException(
+                $"Não foi possível {verbo} a conversa no Postgres ({ex.Message}). " +
+                "Suba com `docker compose up -d` na raiz deste repositório.", ex);
         }
     }
 

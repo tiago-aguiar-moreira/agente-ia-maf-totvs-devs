@@ -1,4 +1,5 @@
 using AgenteViagens.ConsoleApp;
+using AgenteViagens.Infra;
 using Spectre.Console.Testing;
 
 namespace AgenteViagens.Testes;
@@ -51,5 +52,27 @@ public class TelaTests
         Tela.UltimaTroca(tela, null, null);
 
         Assert.Equal("", tela.Output);
+    }
+
+    [Fact]
+    public void Falha_de_integracao_na_resposta_mostra_a_causa_sem_culpar_o_modelo()
+    {
+        var tela = new TestConsole();
+
+        Tela.FalhaNaResposta(tela, new FalhaDeIntegracaoException("Não foi possível salvar a conversa no Postgres: caiu."));
+
+        Assert.Contains("Não foi possível salvar a conversa no Postgres", tela.Output);
+        Assert.DoesNotContain("modelo", tela.Output);
+    }
+
+    [Fact]
+    public void Outra_falha_na_resposta_continua_culpando_o_modelo()
+    {
+        var tela = new TestConsole();
+
+        Tela.FalhaNaResposta(tela, new HttpRequestException("timeout"));
+
+        Assert.Contains("Falha ao falar com o modelo", tela.Output);
+        Assert.Contains("timeout", tela.Output);
     }
 }

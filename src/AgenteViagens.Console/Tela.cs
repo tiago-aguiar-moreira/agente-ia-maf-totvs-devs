@@ -1,3 +1,4 @@
+using AgenteViagens.Infra;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
@@ -42,7 +43,31 @@ public static class Tela
     }
 
     /// <summary>Respostas longas viram um trecho: a ideia é lembrar o contexto, não reler tudo.</summary>
-    private static string Resumir(string texto) => texto.Length <= 280 ? texto : texto[..280] + "…";
+    private static string Resumir(string texto)
+    {
+        if (texto.Length <= 280)
+        {
+            return texto;
+        }
+
+        var corte = char.IsHighSurrogate(texto[279]) ? 279 : 280; // não corta um emoji ao meio
+        return texto[..corte] + "…";
+    }
+
+    /// <summary>
+    /// Erro no meio de uma resposta. Falha de integração (ex.: Postgres fora do ar) já diz a causa e
+    /// como resolver; o resto, por eliminação, é com o modelo.
+    /// </summary>
+    public static void FalhaNaResposta(IAnsiConsole tela, Exception erro)
+    {
+        if (erro is FalhaDeIntegracaoException)
+        {
+            tela.MarkupLine($"\n[red]⚠  {Markup.Escape(erro.Message)}[/]");
+            return;
+        }
+
+        tela.MarkupLine($"\n[red]⚠  Falha ao falar com o modelo, tente de novo.[/] [grey]({Markup.Escape(erro.Message)})[/]");
+    }
 
     public static void Ok(IAnsiConsole tela, string texto) =>
         tela.MarkupLine($"[green]✓[/] {Markup.Escape(texto)}");

@@ -93,6 +93,21 @@ public class PostgresChatHistoryProviderTests(PostgresDeTeste pg)
     }
 
     [Fact]
+    public async Task Titulo_nao_corta_um_emoji_ao_meio()
+    {
+        var texto = new string('a', 59) + "🎄 natal em Gramado";
+        var titulo = PostgresChatHistoryProvider.Titulo(texto);
+
+        Assert.False(char.IsHighSurrogate(titulo[^2]), "metade de um emoji antes das reticências");
+        Assert.EndsWith("…", titulo);
+
+        // E a primeira rodada é gravada mesmo com esse título.
+        var (agente, sessao) = await PostgresDeTeste.SessaoAsync(Guid.NewGuid());
+        await GravarAsync(Provider(), agente, sessao, [new(ChatRole.User, texto)], [new(ChatRole.Assistant, "Natal Luz!")]);
+        Assert.Equal(2, (await LerAsync(Provider(), agente, sessao)).Count);
+    }
+
+    [Fact]
     public async Task Sessao_de_outro_usuario_nao_e_lida_nem_gravada()
     {
         var (agente, sessao) = await PostgresDeTeste.SessaoAsync(Guid.NewGuid());
@@ -127,7 +142,24 @@ public class PostgresChatHistoryProviderTests(PostgresDeTeste pg)
         var erro = await Assert.ThrowsAsync<FalhaDeIntegracaoException>(
             () => GravarAsync(provider, agente, sessao, [new(ChatRole.User, "oi")], [new(ChatRole.Assistant, "olá")]));
 
-        Assert.Contains("Postgres", erro.Message);
+        Assert.Contains("salvar a conversa no Postgres", erro.Message);
+        Assert.Contains("docker compose up -d", erro.Message);
+    }
+
+    [Fact]
+    public async Task Falha_ao_ler_diz_que_era_leitura()
+    {
+        var foraDoAr = HistoricoDb.Opcoes(new PostgresOptions
+        {
+            ConnectionString = "Host=localhost;Port=5999;Database=x;Username=x;Password=x;Timeout=2",
+        });
+        var provider = new PostgresChatHistoryProvider(foraDoAr, _usuario, PostgresDeTeste.Chave);
+        var (agente, sessao) = await PostgresDeTeste.SessaoAsync(Guid.NewGuid());
+
+        var erro = await Assert.ThrowsAsync<FalhaDeIntegracaoException>(() => LerAsync(provider, agente, sessao));
+
+        Assert.Contains("ler a conversa no Postgres", erro.Message);
+        Assert.Contains("docker compose up -d", erro.Message);
     }
 
     [Fact]

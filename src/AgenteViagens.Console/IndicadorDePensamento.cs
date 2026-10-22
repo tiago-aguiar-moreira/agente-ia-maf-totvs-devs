@@ -15,9 +15,13 @@ public interface IIndicadorDePensamento
 /// Spinner próprio em vez de <c>AnsiConsole.Status()</c>: o Status não pode ser pausado no meio,
 /// e aqui ele precisa sumir quando aparece uma linha 🔧 ou o pedido de aprovação (s/N).
 /// </summary>
-public sealed class IndicadorDePensamento(IAnsiConsole tela) : IIndicadorDePensamento, IDisposable
+/// <param name="animar">Falso com a saída redirecionada (arquivo, pipe), onde o spinner só faria sujeira.</param>
+public sealed class IndicadorDePensamento(IAnsiConsole tela, bool animar) : IIndicadorDePensamento, IDisposable
 {
     private const string Texto = "pensando…";
+
+    // Volta ao começo da linha e apaga. Vai cru (WriteAnsi): o Spectre transformaria um "\r" sozinho em quebra de linha.
+    private const string LimparLinha = "\r\u001b[2K";
     private static readonly Spinner Spinner = Spinner.Known.Dots;
 
     private readonly Lock _trava = new();
@@ -28,8 +32,7 @@ public sealed class IndicadorDePensamento(IAnsiConsole tela) : IIndicadorDePensa
     {
         lock (_trava)
         {
-            // Saída redirecionada (arquivo, pipe): o \r não volta ao começo da linha, então nada de animação.
-            if (_timer is not null || Console.IsOutputRedirected)
+            if (_timer is not null || !animar)
             {
                 return;
             }
@@ -50,7 +53,7 @@ public sealed class IndicadorDePensamento(IAnsiConsole tela) : IIndicadorDePensa
 
             _timer.Dispose();
             _timer = null;
-            tela.Write("\r" + new string(' ', Texto.Length + 3) + "\r");
+            tela.WriteAnsi(LimparLinha);
         }
     }
 
@@ -64,7 +67,8 @@ public sealed class IndicadorDePensamento(IAnsiConsole tela) : IIndicadorDePensa
             }
 
             var quadro = Spinner.Frames[_quadro++ % Spinner.Frames.Count];
-            tela.Markup($"\r[grey]{Markup.Escape(quadro)} {Texto}[/]");
+            tela.WriteAnsi(LimparLinha);
+            tela.Markup($"[grey]{Markup.Escape(quadro)} {Texto}[/]");
         }
     }
 
