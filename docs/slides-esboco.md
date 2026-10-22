@@ -42,6 +42,8 @@ Bloco 1 (~13 min) e fechamento (~5 min). Um conceito por slide; código só nos 
 
 ## Fechamento (5 min)
 - Recapitulação em 6 ícones: agente · system prompt · MCP · sessão · aprovação · middleware/telemetria.
+- (A revisar) Etapas 7 e 8 no código: console com Spectre.Console e sessões persistentes no Postgres
+  (`ChatHistoryProvider` + EF Core; analogia `IMemoryCache` × cache distribuído).
 - Próximos passos (fora do escopo de hoje): workflows e multi-agentes; hospedar como API (AG-UI/DevUI);
   memória persistente e context providers; structured output.
 - Links: repositório, docs do MAF, docs do MCP C# SDK. Perguntas.

@@ -5,14 +5,15 @@ apresentada em live no canal **TOTVS Developers**: [assista no YouTube](https://
 
 Um agente de viagens em console que usa um modelo do **Azure AI Foundry** e as tools de um
 **servidor MCP** de agência de viagens, com system prompt blindado, sessão, aprovação humana,
-middleware e observabilidade no **Langfuse**.
+middleware, observabilidade no **Langfuse** e conversas salvas no **Postgres** — feche o console,
+abra de novo e continue de onde parou.
 
 ## Arquitetura
 
 ```
 AgenteViagens.Console  → casca: view + composition root (Program, Preflight, ConsoleInteracao)
 AgenteViagens.Agente   → lógica do agente (MAF): instruções, aprovação, middleware
-AgenteViagens.Infra    → integrações: Foundry, MCP (JWT), login, telemetria
+AgenteViagens.Infra    → integrações: Foundry, MCP (JWT), login, telemetria, histórico no Postgres (EF Core)
 ```
 Console → Agente e Console → Infra. Agente e Infra não se conhecem.
 
@@ -26,6 +27,11 @@ Console → Agente e Console → Infra. Agente e Infra não se conhecem.
    `http://localhost:5450`.
 3. **Azure AI Foundry** com um deployment `gpt-4.1` — veja [docs/provisionamento-foundry.md](docs/provisionamento-foundry.md) — e `az login`.
 4. **Langfuse Cloud** (plano gratuito) com um par de API keys.
+5. **Docker**, para o Postgres deste repositório (onde ficam as conversas) e para os testes:
+   ```bash
+   cp .env.example .env     # e troque a senha
+   docker compose up -d     # Postgres em localhost:5432 · zerar as conversas: docker compose down -v
+   ```
 
 ## Configuração
 
@@ -40,16 +46,18 @@ dotnet user-secrets set "Usuarios:Email" "marina.torres@example.com"
 dotnet user-secrets set "Usuarios:Senha" "Demo@123"
 dotnet user-secrets set "Langfuse:PublicKey" "pk-lf-..."
 dotnet user-secrets set "Langfuse:SecretKey" "sk-lf-..."
+dotnet user-secrets set "Postgres:ConnectionString" "Host=localhost;Port=5432;Database=agente_viagens;Username=agente;Password=<a senha do .env>"
 ```
 
 ## Rodar
 
 ```bash
-dotnet test
+dotnet test                                    # sobe um Postgres descartável (Testcontainers): Docker precisa estar no ar
 dotnet run --project src/AgenteViagens.Console
 ```
 
-O preflight confere login, MCP, Foundry e as chaves do Langfuse antes do primeiro prompt. Digite `sair` para
+O preflight confere login, MCP, Foundry, as chaves do Langfuse e o Postgres antes do primeiro prompt.
+Em seguida aparece a lista das suas conversas salvas: escolha uma para continuar ou "Nova conversa". Digite `sair` para
 encerrar; `Ctrl+C` interrompe só a resposta em andamento.
 
 ## Etapas da palestra
@@ -63,6 +71,7 @@ encerrar; `Ctrl+C` interrompe só a resposta em andamento.
 | `etapa-5` | Middleware de log de tools |
 | `etapa-6` | Observabilidade → Langfuse |
 | `etapa-7` | Console com Spectre.Console (visual) |
+| `etapa-8` | Sessões persistentes no Postgres (EF Core) e escolha da conversa ao iniciar |
 
 `git checkout etapa-N` para ver o código em cada ponto; `git diff etapa-3 etapa-4` mostra o que cada etapa acrescentou.
 

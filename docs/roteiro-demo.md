@@ -6,9 +6,14 @@ Os dados semeados do servidor cobrem **01/10/2026 a 31/12/2026**. Use datas dent
 ## Antes de subir ao palco (T-30 min)
 
 - [ ] `docker compose up -d` no servidor MCP; `docker compose ps` todos `running`.
+- [ ] `docker compose up -d` **neste** repositório (Postgres das conversas).
 - [ ] `az login` válido (`az account show`).
 - [ ] Langfuse aberto em **Tracing**, logado.
-- [ ] Reservas de ensaio canceladas ("minhas reservas" → cancelar), para a lista começar limpa.
+- [ ] Reserva criada no ensaio cancelada. O seed do servidor já cria reservas para a Marina, então a
+  lista nunca começa vazia: cancele só a do ensaio (ou `docker compose down -v` + `up -d` no servidor
+  MCP para voltar ao estado do seed).
+- [ ] Conversas de ensaio: deixe a do Gramado se for usá-la na etapa 8; `docker compose down -v` +
+  `up -d` aqui zera todas.
 - [ ] `dotnet run --project src/AgenteViagens.Console` → preflight todo verde.
 - [ ] Fonte do terminal grande (≥ 20 pt), tema escuro; IDE com os arquivos abaixo em abas, na ordem.
 - [ ] Vídeo de backup da demo completa acessível offline.
@@ -83,6 +88,26 @@ No Langfuse (**Tracing**), abrir o trace da reserva: `invoke_agent AgenteDeViage
 `chat gpt-4.1` → `criar_reserva` (TOOL) → `chat gpt-4.1`; mostrar prompt, tokens, custo e latência
 por passo. Os traces levam alguns segundos para aparecer. Não se aprofundar na ferramenta.
 
+## Etapa 8 — Sessões persistentes (5 min)
+
+Arquivos: `AgenteDeViagens.cs` (`ChatHistoryProvider` nas opções, `IniciarSessaoAsync`) →
+`PostgresChatHistoryProvider.cs` (`ProvideChatHistoryAsync` / `StoreChatHistoryAsync`) →
+`FoundryChatClientFactory.cs` (por que Chat Completions).
+Mensagem: sem provider, a sessão vive na memória do processo (como `IMemoryCache`); com provider, o
+histórico sai do processo (como um cache distribuído) — e o agente não muda.
+
+1. Depois da etapa 3 (conversa sobre Gramado), digitar `sair`.
+2. Rodar de novo → na lista, escolher `dd/MM HH:mm · Quero ir a Gramado de 12 a 14 de dezembro com…`.
+3. Aparece o painel "Continuando a conversa" com a última troca.
+```
+E como vai estar o clima nesses dias?
+```
+Esperado: 🔧 `consultar_previsao_tempo(cidade: Gramado, …)` para 12 a 14/12, sem perguntar o destino.
+
+Opcional: mostrar a tabela (`docker compose exec postgres psql -U agente -d agente_viagens -c
+"select id, papel, left(conteudo::text, 80) from mensagens order by id"`) — e que nenhum token
+aparece lá.
+
 ## Depois da demo
 
 ```
@@ -96,6 +121,7 @@ Cancelar a reserva criada (`cancelar_reserva` → `s`), para o próximo ensaio c
 |---|---|
 | Preflight ✗ MCP | `docker compose up -d` no servidor; rodar de novo |
 | Preflight ✗ Foundry / az | `az login`; rodar de novo |
+| Preflight ✗ Postgres | `docker compose up -d` na raiz deste repositório; rodar de novo |
 | Resposta travada | `Ctrl+C` interrompe só a resposta |
 | Rede do evento caiu | vídeo de backup |
 | Etapa quebrada | `git checkout etapa-<anterior>` |
