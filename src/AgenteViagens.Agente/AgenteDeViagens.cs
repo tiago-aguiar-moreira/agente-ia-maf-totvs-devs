@@ -12,17 +12,25 @@ public sealed class AgenteDeViagens
 {
     public const string FonteDeTelemetria = "AgenteViagens";
 
+    /// <summary>Onde a AgentSession guarda o id da conversa salva, para o provider de histórico achá-la.</summary>
+    public const string ChaveSessaoId = "AgenteViagens.SessaoId";
+
     private readonly AIAgent _agente;
     private readonly IInteracaoComUsuario _interacao;
     private AgentSession? _sessao; // o histórico da conversa vive aqui
 
-    public AgenteDeViagens(IChatClient chatClient, IEnumerable<AITool> tools, IInteracaoComUsuario interacao, DateOnly hoje)
+    public AgenteDeViagens(
+        IChatClient chatClient, IEnumerable<AITool> tools, IInteracaoComUsuario interacao, DateOnly hoje,
+        ChatHistoryProvider? historico = null)
     {
         _interacao = interacao;
 
         _agente = new ChatClientAgent(chatClient, new ChatClientAgentOptions
             {
                 Name = "AgenteDeViagens",
+                // Sem provider, o histórico fica na memória da AgentSession. Com ele, fica onde o provider
+                // quiser (aqui, no Postgres) e sobrevive ao fechamento do console.
+                ChatHistoryProvider = historico,
                 ChatOptions = new ChatOptions
                 {
                     Instructions = Instrucoes.Montar(hoje),
@@ -35,6 +43,14 @@ public sealed class AgenteDeViagens
             // transporte HTTP do MCP, fora das mensagens.
             .UseOpenTelemetry(FonteDeTelemetria, cfg => cfg.EnableSensitiveData = true)
             .Build();
+    }
+
+    /// <summary>Começa uma conversa nova ou retoma uma salva: a sessão só carrega o id dela.</summary>
+    public async Task IniciarSessaoAsync(Guid sessaoId, CancellationToken cancellationToken)
+    {
+        _sessao = await _agente.CreateSessionAsync(cancellationToken);
+        _sessao.StateBag.SetValue(ChaveSessaoId, sessaoId.ToString());
+
     }
 
     public async IAsyncEnumerable<string> ConversarAsync(

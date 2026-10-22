@@ -1,5 +1,6 @@
 using AgenteViagens.Agente;
 using AgenteViagens.Testes.Fakes;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
 namespace AgenteViagens.Testes;
@@ -9,8 +10,9 @@ public static class Montar
     public static readonly DateOnly Hoje = new(2026, 10, 14);
 
     public static AgenteDeViagens Agente(
-        ChatClientFalso chat, IEnumerable<AITool>? tools = null, InteracaoFalsa? interacao = null) =>
-        new(chat, tools ?? [], interacao ?? new InteracaoFalsa(), Hoje);
+        ChatClientFalso chat, IEnumerable<AITool>? tools = null, InteracaoFalsa? interacao = null,
+        ChatHistoryProvider? historico = null) =>
+        new(chat, tools ?? [], interacao ?? new InteracaoFalsa(), Hoje, historico);
 
     public static async Task<string> ConversarTudoAsync(
         this AgenteDeViagens agente, string mensagem, CancellationToken cancellationToken = default)

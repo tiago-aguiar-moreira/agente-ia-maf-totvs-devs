@@ -32,7 +32,7 @@ public sealed partial class PostgresChatHistoryProvider(
                 .Select(m => m.Conteudo)
                 .ToListAsync(cancellationToken);
 
-            return conteudos.Select(JsonDoHistorico.Desserializar).ToList();
+            return MarcarAprovacoesComoHistorico(conteudos.Select(JsonDoHistorico.Desserializar).ToList());
         });
     }
 
@@ -72,6 +72,25 @@ public sealed partial class PostgresChatHistoryProvider(
             await db.SaveChangesAsync(cancellationToken);
             return true;
         });
+    }
+
+    /// <summary>
+    /// Pedidos de aprovação lidos do banco são só registro do que aconteceu. O pedido em aberto da rodada
+    /// atual o MAF guarda no estado da sessão (em memória), não no histórico. Marcando os do banco como
+    /// "informativos", o MAF não espera resposta para eles — inclusive para um (s/N) que ficou na tela
+    /// quando o console foi fechado.
+    /// </summary>
+    private static List<ChatMessage> MarcarAprovacoesComoHistorico(List<ChatMessage> mensagens)
+    {
+        foreach (var pedido in mensagens.SelectMany(m => m.Contents).OfType<ToolApprovalRequestContent>())
+        {
+            if (pedido.ToolCall is FunctionCallContent chamada)
+            {
+                chamada.InformationalOnly = true;
+            }
+        }
+
+        return mensagens;
     }
 
     /// <summary>A primeira mensagem do usuário numa linha só, cortada em 60 caracteres.</summary>
