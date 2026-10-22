@@ -1,11 +1,14 @@
 using AgenteViagens.Agente;
 using AgenteViagens.Infra;
+using AgenteViagens.Infra.Historico;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Spectre.Console;
 
 namespace AgenteViagens.ConsoleApp;
 
-public sealed record Dependencias(SessaoDoUsuario Sessao, ConexaoMcp Mcp, IChatClient ChatClient);
+public sealed record Dependencias(
+    SessaoDoUsuario Sessao, ConexaoMcp Mcp, IChatClient ChatClient, DbContextOptions<HistoricoDbContext> Historico);
 
 /// <summary>Checklist de inicialização: descobre problemas antes do primeiro prompt.</summary>
 public static class Preflight
@@ -15,6 +18,7 @@ public static class Preflight
         McpOptions mcpOptions,
         FoundryOptions foundryOptions,
         LangfuseOptions langfuseOptions,
+        PostgresOptions postgresOptions,
         CancellationToken cancellationToken = default)
     {
         try
@@ -56,7 +60,14 @@ public static class Preflight
                 return (true, "Telemetria → Langfuse");
             });
 
-            return new Dependencias(sessao, mcp, chatClient);
+            var historico = await Passo("Abrindo o histórico no Postgres…", async () =>
+            {
+                var opcoes = HistoricoDb.Opcoes(postgresOptions);
+                var salvas = await HistoricoDb.PrepararAsync(opcoes, sessao.UsuarioId, cancellationToken);
+                return (opcoes, $"Postgres — {salvas} {(salvas == 1 ? "sessão salva" : "sessões salvas")}");
+            });
+
+            return new Dependencias(sessao, mcp, chatClient, historico);
         }
         catch
         {

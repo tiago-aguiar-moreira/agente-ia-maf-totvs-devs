@@ -35,4 +35,12 @@ public class ConfiguracaoTests
         Assert.Contains("Usuarios:Senha", erro.Message);
         Assert.Contains("user-secrets", erro.Message);
     }
+
+    [Fact]
+    public void Connection_string_do_Postgres_ausente_aparece_na_mensagem()
+    {
+        var erro = Assert.Throws<FalhaDeIntegracaoException>(() => Configuracao.Ler<PostgresOptions>(Config([]), "Postgres"));
+
+        Assert.Contains("Postgres:ConnectionString", erro.Message);
+    }
 }

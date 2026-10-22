@@ -30,4 +30,26 @@ public class TelaTests
         Assert.Contains("✓ Login como [marina]", tela.Output);
         Assert.Contains("✗ MCP fora do ar", tela.Output);
     }
+
+    [Fact]
+    public void Ultima_troca_mostra_a_pergunta_e_a_resposta()
+    {
+        var tela = new TestConsole();
+
+        Tela.UltimaTroca(tela, "Hotéis em Gramado?", "Encontrei o Chalé [5 estrelas].");
+
+        Assert.Contains("Continuando a conversa", tela.Output);
+        Assert.Contains("Você: Hotéis em Gramado?", tela.Output);
+        Assert.Contains("Agente: Encontrei o Chalé [5 estrelas].", tela.Output);
+    }
+
+    [Fact]
+    public void Ultima_troca_vazia_nao_mostra_nada()
+    {
+        var tela = new TestConsole();
+
+        Tela.UltimaTroca(tela, null, null);
+
+        Assert.Equal("", tela.Output);
+    }
 }

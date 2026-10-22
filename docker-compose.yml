@@ -1,0 +1,24 @@
+# Postgres onde o agente guarda o histórico das conversas (etapa 8).
+# Subir: docker compose up -d   ·   Zerar as conversas: docker compose down -v
+name: agente-viagens
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: agente-viagens-postgres
+    environment:
+      POSTGRES_DB: agente_viagens
+      POSTGRES_USER: agente
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - agente-viagens-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agente -d agente_viagens"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  agente-viagens-pg:
