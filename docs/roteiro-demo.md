@@ -3,6 +3,18 @@
 Os dados semeados do servidor cobrem **01/10/2026 a 31/12/2026**. Use datas dentro desse intervalo
 (abaixo: 12 a 14/12/2026). Se a palestra for depois de 31/12/2026, atualize os seeds do servidor antes.
 
+| Dado | Período | Volume |
+|---|---|---|
+| Viagens aéreas e rodoviárias (`AgenciaViagens_Transporte`) | 01/10 a 31/12/2026 | 896 viagens, ~300 por mês |
+| Sessões de atividades (`AgenciaViagens_Atividades`) | 01/10 a 31/12/2026 | 548 sessões, ~180 por mês |
+| Hotéis e quartos (`AgenciaViagens_Hospedagem`) | sem limite de data | 141 reservas no seed, de 01/10 a 31/12 |
+
+- **Hotéis:** não há calendário. O quarto está livre quando nenhuma reserva cruza as datas pedidas, então
+  qualquer data funciona; as reservas do seed só ocupam alguns quartos em certas datas.
+- **A partir de 01/01/2027** o agente ainda acha hotel, mas não acha passagem nem passeio. Mantenha os
+  exemplos em novembro e dezembro.
+- **Clima** não vem desses bancos: o MCP consulta a API real da OpenWeather.
+
 ## Antes de subir ao palco (T-30 min)
 
 - [ ] `docker compose up -d` no servidor MCP; `docker compose ps` todos `running`.
